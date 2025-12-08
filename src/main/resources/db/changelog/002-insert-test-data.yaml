@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-payment-1
+      author: vlad
+      changes:
+        - insert:
+            collectionName: payments
+            document:
+              order_id: "0"
+              user_id: "0"
+              status: "CREATED"
+              timestamp: "2025-01-01T00:00:00Z"
+              payment_amount: 0.0

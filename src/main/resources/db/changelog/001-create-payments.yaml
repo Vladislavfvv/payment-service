@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-payments-collection
+      author: vlad
+      changes:
+        - createCollection:
+            collectionName: payments
+
+  - changeSet:
+      id: create-payment-indexes
+      author: vlad
+      changes:
+        - createIndex:
+            collectionName: payments
+            keys:
+              order_id: 1
+        - createIndex:
+            collectionName: payments
+            keys:
+              user_id: 1
+        - createIndex:
+            collectionName: payments
+            keys:
+              status: 1
+        - createIndex:
+            collectionName: payments
+            keys:
+              timestamp: -1
