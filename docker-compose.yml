@@ -1,5 +1,5 @@
 services:
-  mongo:
+  mongo-payment:
     image: mongo:6
     container_name: mongo-payment
     restart: always
@@ -7,6 +7,30 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - backend-network
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payment-service
+    restart: always
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo-payment:27017/paymentdb
+      SPRING_LIQUIBASE_CHANGE_LOG: classpath:/db/changelog/master-changelog.yaml
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - mongo-payment
+    networks:
+      - backend-network
 
 volumes:
   mongo_data:
+
+networks:
+  backend-network:
+    driver: bridge
