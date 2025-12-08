@@ -131,9 +131,17 @@ docker volume rm -f paymentservice_mongo_data
 
 Рекомендации для работы с Docker образами:
 Для разработки (текущий случай):
-# 1. Остановить и удалить контейнерыdocker-compose down# 2. Удалить старый образ (опционально, но рекомендуется)docker rmi paymentservice-payment-service# 3. Пересобрать и запуститьdocker-compose up -d --build
+# 1. Остановить и удалить контейнеры
+docker-compose down
+# 2. Удалить старый образ (опционально, но рекомендуется)
+docker rmi paymentservice-payment-service
+# 3. Пересобрать и запустить
+docker-compose up -d --build
 Для production:
 Используйте версионирование образов вместо latest:
 # docker-compose.ymlservices:  payment-service:    image: paymentservice-payment-service:v1.0.0  # вместо latest
 Периодическая очистка (раз в неделю/месяц):
-# Удалить все неиспользуемые образыdocker image prune -a# Или полная очистка системыdocker system prune -a
+# Удалить все неиспользуемые образы
+docker image prune -a
+# Или полная очистка системы
+docker system prune -a

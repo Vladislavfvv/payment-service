@@ -27,7 +27,7 @@ public class Payment {
     private String userId;
 
     @Indexed
-    private String status;
+    private PaymentStatus status;
 
     @Indexed
     private Instant timestamp;

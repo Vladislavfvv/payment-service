@@ -1,6 +1,7 @@
 package com.innowise.paymentservice.service;
 
 import com.innowise.paymentservice.model.Payment;
+import com.innowise.paymentservice.model.PaymentStatus;
 import com.innowise.paymentservice.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,10 @@ public class PaymentService {
     }
 
     public Payment createPayment(Payment payment) {
-        payment.setStatus("CREATED");
+        // Если статус не указан, устанавливаем CREATED по умолчанию
+        if (payment.getStatus() == null) {
+            payment.setStatus(PaymentStatus.CREATED);
+        }
         payment.setTimestamp(Instant.now());
         return repo.save(payment);
     }
