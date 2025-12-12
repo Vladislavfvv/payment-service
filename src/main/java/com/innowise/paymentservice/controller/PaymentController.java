@@ -1,9 +1,11 @@
 package com.innowise.paymentservice.controller;
 
+import com.innowise.paymentservice.dto.CreatePaymentRequest;
+import com.innowise.paymentservice.dto.PaymentDto;
 import com.innowise.paymentservice.dto.TotalSumResponse;
-import com.innowise.paymentservice.model.Payment;
 import com.innowise.paymentservice.model.PaymentStatus;
 import com.innowise.paymentservice.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,31 +22,32 @@ public class PaymentController {
     private final PaymentService paymentService;
     
     @PostMapping
-    public ResponseEntity<Payment> create(@RequestBody Payment payment) {
-        return ResponseEntity.ok(paymentService.createPayment(payment));
+    public ResponseEntity<PaymentDto> create(@Valid @RequestBody CreatePaymentRequest request) {
+        PaymentDto paymentDto = paymentService.createPayment(request);
+        return ResponseEntity.ok(paymentDto);
     }
 
     
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<Payment>> getPaymentsByOrderId(@PathVariable String orderId) {
-        List<Payment> payments = paymentService.getPaymentsByOrderId(orderId);
+    public ResponseEntity<List<PaymentDto>> getPaymentsByOrderId(@PathVariable String orderId) {
+        List<PaymentDto> payments = paymentService.getPaymentsByOrderId(orderId);
         return ResponseEntity.ok(payments);
     }
 
    
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Payment>> getPaymentsByUserId(@PathVariable String userId) {
-        List<Payment> payments = paymentService.getPaymentsByUserId(userId);
+    public ResponseEntity<List<PaymentDto>> getPaymentsByUserId(@PathVariable String userId) {
+        List<PaymentDto> payments = paymentService.getPaymentsByUserId(userId);
         return ResponseEntity.ok(payments);
     }
 
         
      //payments/status?statuses=CREATED,PAID,FAILED     
     @GetMapping("/status")
-    public ResponseEntity<List<Payment>> getPaymentsByStatuses(
+    public ResponseEntity<List<PaymentDto>> getPaymentsByStatuses(
             @RequestParam("statuses") List<PaymentStatus> statuses
     ) {
-        List<Payment> payments = paymentService.getPaymentsByStatuses(statuses);
+        List<PaymentDto> payments = paymentService.getPaymentsByStatuses(statuses);
         return ResponseEntity.ok(payments);
     }
    

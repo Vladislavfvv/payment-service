@@ -1,6 +1,9 @@
 package com.innowise.paymentservice.service;
 
+import com.innowise.paymentservice.dto.CreatePaymentRequest;
+import com.innowise.paymentservice.dto.PaymentDto;
 import com.innowise.paymentservice.dto.TotalSumResponse;
+import com.innowise.paymentservice.mapper.PaymentMapper;
 import com.innowise.paymentservice.model.Payment;
 import com.innowise.paymentservice.model.PaymentStatus;
 import com.innowise.paymentservice.repository.PaymentRepository;
@@ -17,49 +20,65 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PaymentService {
     private final PaymentRepository repository;
+    private final PaymentMapper paymentMapper;
 
     
-    public Payment createPayment(Payment payment) {
-        log.info("Creating payment for orderId: {}, userId: {}", payment.getOrderId(), payment.getUserId());
+    public PaymentDto createPayment(CreatePaymentRequest request) {
+        log.info("Creating payment for orderId: {}, userId: {}", request.getOrderId(), request.getUserId());
         
-        // Если статус не указан, устанавливаем CREATED по умолчанию
+       
+        Payment payment = paymentMapper.toEntity(request);
+
         if (payment.getStatus() == null) {
             payment.setStatus(PaymentStatus.CREATED);
         }
         payment.setTimestamp(Instant.now());
         
+        
         Payment saved = repository.save(payment);
         log.info("Payment created with id: {}", saved.getId());
-        return saved;
+        
+        
+        return paymentMapper.toDto(saved);
     }
 
 
-    public List<Payment> getPaymentsByOrderId(String orderId) {
+    public List<PaymentDto> getPaymentsByOrderId(String orderId) {
         log.info("Getting payments for orderId: {}", orderId);
-        return repository.findByOrderId(orderId);
+        
+        List<Payment> payments = repository.findByOrderId(orderId);
+        
+        return paymentMapper.toDtoList(payments);
     }
 
 
-    public List<Payment> getPaymentsByUserId(String userId) {
+    public List<PaymentDto> getPaymentsByUserId(String userId) {
         log.info("Getting payments for userId: {}", userId);
-        return repository.findByUserId(userId);
+        
+        List<Payment> payments = repository.findByUserId(userId);
+       
+        return paymentMapper.toDtoList(payments);
     }
 
 
-    public List<Payment> getPaymentsByStatuses(List<PaymentStatus> statuses) {
+    public List<PaymentDto> getPaymentsByStatuses(List<PaymentStatus> statuses) {
         log.info("Getting payments for statuses: {}", statuses);
-        return repository.findByStatusIn(statuses);
+       
+        List<Payment> payments = repository.findByStatusIn(statuses);
+       
+        return paymentMapper.toDtoList(payments);
     }
 
 
     public TotalSumResponse getTotalSumByDatePeriod(Instant startDate, Instant endDate) {
         log.info("Calculating total sum for period: {} to {}", startDate, endDate);
         
+        
         List<Payment> payments = repository.findByTimestampBetween(startDate, endDate);
         
         BigDecimal totalSum = payments.stream()
                 .map(Payment::getPaymentAmount)
-                .filter(amount -> amount != null) 
+                .filter(amount -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add); 
         
         log.info("Total sum calculated: {} for {} payments", totalSum, payments.size());
@@ -72,16 +91,14 @@ public class PaymentService {
                 .build();
     }
 
-    /**
-     * Получить общую сумму платежей за период дат с фильтром по статусам
-     */
+    
     public TotalSumResponse getTotalSumByDatePeriodAndStatuses(
             Instant startDate, 
             Instant endDate, 
             List<PaymentStatus> statuses
     ) {
         log.info("Calculating total sum for period: {} to {} with statuses: {}", startDate, endDate, statuses);
-        
+               
         List<Payment> payments = repository.findByStatusInAndTimestampBetween(statuses, startDate, endDate);
         
         BigDecimal totalSum = payments.stream()
