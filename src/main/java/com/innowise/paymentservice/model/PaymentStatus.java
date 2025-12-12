@@ -1,36 +1,36 @@
 package com.innowise.paymentservice.model;
 
 /**
- * Статусы платежа
+ * Payment statuses
  */
 public enum PaymentStatus {
     /**
-     * Платеж создан, но еще не обработан
+     * Payment created but not yet processed
      */
     CREATED,
     
     /**
-     * Платеж находится в процессе обработки
+     * Payment is being processed
      */
     PENDING,
     
     /**
-     * Платеж успешно оплачен
+     * Payment successfully paid
      */
     PAID,
     
     /**
-     * Платеж не прошел (ошибка при обработке)
+     * Payment failed (error during processing)
      */
     FAILED,
     
     /**
-     * Платеж отменен
+     * Payment cancelled
      */
     CANCELLED,
     
     /**
-     * Платеж возвращен (refund)
+     * Payment refunded
      */
     REFUNDED
 }

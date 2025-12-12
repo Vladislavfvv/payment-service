@@ -1,16 +1,12 @@
 package com.innowise.paymentservice.config;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.data.mongodb.core.index.IndexOperations;
-import org.springframework.data.domain.Sort;
-
 import com.innowise.paymentservice.model.Payment;
-
+import com.mongodb.client.model.Indexes;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 @Slf4j
 @Configuration
@@ -24,13 +20,15 @@ public class MongoConfig {
         log.info("Creating indexes for MongoDB collections...");
         
         try {
-            IndexOperations indexOps = mongoTemplate.indexOps(Payment.class);
+            String collectionName = mongoTemplate.getCollectionName(Payment.class);
             
-            // Создаем индексы вручную
-            indexOps.ensureIndex(new Index().on("orderId", Sort.Direction.ASC).named("idx_order_id"));
-            indexOps.ensureIndex(new Index().on("userId", Sort.Direction.ASC).named("idx_user_id"));
-            indexOps.ensureIndex(new Index().on("status", Sort.Direction.ASC).named("idx_status"));
-            indexOps.ensureIndex(new Index().on("timestamp", Sort.Direction.DESC).named("idx_timestamp"));
+            // Создаем индексы используя MongoDB Java Driver API
+            // Индексы будут созданы автоматически, если их еще нет
+            //класс служит дополнительной гарантией создания индексов при старте приложения
+            mongoTemplate.getCollection(collectionName).createIndex(Indexes.ascending("orderId"));
+            mongoTemplate.getCollection(collectionName).createIndex(Indexes.ascending("userId"));
+            mongoTemplate.getCollection(collectionName).createIndex(Indexes.ascending("status"));
+            mongoTemplate.getCollection(collectionName).createIndex(Indexes.descending("timestamp"));
             
             log.info("Indexes created successfully for Payment collection");
         } catch (Exception e) {

@@ -4,12 +4,23 @@ import com.innowise.paymentservice.model.Payment;
 import com.innowise.paymentservice.model.PaymentStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.time.Instant;
 import java.util.List;
 
-public interface PaymentRepository extends MongoRepository<Payment, String> {
+public interface PaymentRepository extends MongoRepository<Payment, String> {    
     List<Payment> findByUserId(String userId);
-
+    
     List<Payment> findByOrderId(String orderId);
 
     List<Payment> findByStatus(PaymentStatus status);
+    
+    List<Payment> findByStatusIn(List<PaymentStatus> statuses);
+    
+    List<Payment> findByTimestampBetween(Instant startDate, Instant endDate);
+    //Get total sum of payments for date period
+    List<Payment> findByStatusInAndTimestampBetween(
+        List<PaymentStatus> statuses, 
+        Instant startDate, 
+        Instant endDate
+    );
 }
