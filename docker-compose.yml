@@ -23,6 +23,7 @@ services:
       SPRING_LIQUIBASE_CHANGE_LOG: classpath:/db/changelog/master-changelog.yaml
       SPRING_LIQUIBASE_ENABLED: "true"
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     depends_on:
       - mongo-payment
     networks:
@@ -33,4 +34,5 @@ volumes:
 
 networks:
   backend-network:
-    driver: bridge
+    name: backend-network
+    external: true

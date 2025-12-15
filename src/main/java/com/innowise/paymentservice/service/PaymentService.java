@@ -7,6 +7,7 @@ import com.innowise.paymentservice.dto.TotalSumResponse;
 import com.innowise.paymentservice.mapper.PaymentMapper;
 import com.innowise.paymentservice.model.Payment;
 import com.innowise.paymentservice.model.PaymentStatus;
+import com.innowise.paymentservice.producer.PaymentEventProducer;
 import com.innowise.paymentservice.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class PaymentService {
     private final PaymentRepository repository;
     private final PaymentMapper paymentMapper;
     private final ExternalApiClient externalApiClient;
+    private final PaymentEventProducer paymentEventProducer;
 
     @Transactional
     public PaymentDto createPayment(CreatePaymentRequest request) {
@@ -44,8 +46,20 @@ public class PaymentService {
         // Call external API to generate random number and update payment status
         updatePaymentStatusFromExternalApi(saved);
         
+        // Reload payment to get updated status
+        Payment updatedPayment = repository.findById(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Payment not found after update: " + saved.getId()));
+        
+        // Send CREATE_PAYMENT event to Kafka
+        try {
+            paymentEventProducer.sendCreatePaymentEvent(updatedPayment);
+        } catch (Exception e) {
+            log.error("Failed to send CREATE_PAYMENT event to Kafka for paymentId: {}", updatedPayment.getId(), e);
+            // Continue execution even if Kafka event fails
+        }
+        
         // Convert Entity back to DTO for response
-        return paymentMapper.toDto(saved);
+        return paymentMapper.toDto(updatedPayment);
     }
     
     /**

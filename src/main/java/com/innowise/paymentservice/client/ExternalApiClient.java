@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -24,7 +23,6 @@ public class ExternalApiClient {
     private final WebClient webClient;
     
     @Value("${external.api.random-number.url:http://www.randomnumberapi.com/api/v1.0/random?min=1&max=100}")
-    @NonNull
     private String randomNumberApiUrl;
     
     /**
