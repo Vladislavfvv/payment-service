@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * DTO for Payment entity
- */
+
 @Data
 @Builder
 @NoArgsConstructor

@@ -12,12 +12,12 @@ public enum PaymentStatus {
     /**
      * Payment is being processed
      */
-    PENDING,
+    PENDING,       
     
     /**
-     * Payment successfully paid
+     * Payment successful (processed successfully via external API)
      */
-    PAID,
+    SUCCESS,
     
     /**
      * Payment failed (error during processing)

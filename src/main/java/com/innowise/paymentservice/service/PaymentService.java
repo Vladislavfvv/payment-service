@@ -1,5 +1,6 @@
 package com.innowise.paymentservice.service;
 
+import com.innowise.paymentservice.client.ExternalApiClient;
 import com.innowise.paymentservice.dto.CreatePaymentRequest;
 import com.innowise.paymentservice.dto.PaymentDto;
 import com.innowise.paymentservice.dto.TotalSumResponse;
@@ -10,6 +11,7 @@ import com.innowise.paymentservice.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,12 +23,13 @@ import java.util.List;
 public class PaymentService {
     private final PaymentRepository repository;
     private final PaymentMapper paymentMapper;
+    private final ExternalApiClient externalApiClient;
 
-    
+    @Transactional
     public PaymentDto createPayment(CreatePaymentRequest request) {
         log.info("Creating payment for orderId: {}, userId: {}", request.getOrderId(), request.getUserId());
         
-       
+        // Convert DTO to Entity using MapStruct
         Payment payment = paymentMapper.toEntity(request);
 
         if (payment.getStatus() == null) {
@@ -34,12 +37,38 @@ public class PaymentService {
         }
         payment.setTimestamp(Instant.now());
         
-        
+        // Save entity to database (DAO layer operates with entities)
         Payment saved = repository.save(payment);
         log.info("Payment created with id: {}", saved.getId());
         
+        // Call external API to generate random number and update payment status
+        updatePaymentStatusFromExternalApi(saved);
         
+        // Convert Entity back to DTO for response
         return paymentMapper.toDto(saved);
+    }
+    
+    /**
+     * Call external API to generate random number and update payment status
+     * If number is even -> SUCCESS, otherwise -> FAILED
+     */
+    private void updatePaymentStatusFromExternalApi(Payment payment) {
+        log.info("Calling external API to determine payment status for payment id: {}", payment.getId());
+        
+        Integer randomNumber = externalApiClient.getRandomNumber();
+        
+        if (randomNumber != null) {
+            // If number is even -> SUCCESS, otherwise -> FAILED
+            PaymentStatus newStatus = (randomNumber % 2 == 0) ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
+            payment.setStatus(newStatus);
+            repository.save(payment);
+            log.info("Payment status updated to {} based on random number: {}", newStatus, randomNumber);
+        } else {
+            // If API call failed, set status to FAILED
+            payment.setStatus(PaymentStatus.FAILED);
+            repository.save(payment);
+            log.warn("External API call failed, payment status set to FAILED for payment id: {}", payment.getId());
+        }
     }
 
 
