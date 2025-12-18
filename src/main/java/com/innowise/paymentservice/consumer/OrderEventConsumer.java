@@ -28,13 +28,23 @@ public class OrderEventConsumer {
     /**
      * Handle CREATE_ORDER event from Kafka
      */
-    @KafkaListener(topics = CREATE_ORDER_TOPIC, groupId = GROUP_ID)
+    @KafkaListener(topics = CREATE_ORDER_TOPIC, groupId = GROUP_ID, containerFactory = "orderEventKafkaListenerContainerFactory")
     public void handleCreateOrderEvent(
             @Payload CreateOrderEvent event,            
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
         
         try {
+            // ErrorHandlingDeserializer может вернуть null при ошибке десериализации
+            if (event == null) {
+                log.warn("Received null CREATE_ORDER event at offset {}, skipping (likely deserialization error from old message format)", offset);
+                // Acknowledge чтобы пропустить проблемное сообщение
+                if (acknowledgment != null) {
+                    acknowledgment.acknowledge();
+                }
+                return;
+            }
+            
             log.info("Received CREATE_ORDER event: orderId={}, userId={}, offset={}", 
                     event.getOrderId(), event.getUserId(), offset);
                                  
@@ -53,7 +63,8 @@ public class OrderEventConsumer {
             
             log.info("Successfully processed CREATE_ORDER event for orderId: {}", event.getOrderId());
         } catch (Exception e) {
-            log.error("Error processing CREATE_ORDER event for orderId: {}", event.getOrderId(), e);
+            log.error("Error processing CREATE_ORDER event for orderId: {}", 
+                    event != null ? event.getOrderId() : "null", e);
             throw e; 
         }
     }   

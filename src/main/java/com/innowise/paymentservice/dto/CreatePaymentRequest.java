@@ -1,5 +1,6 @@
 package com.innowise.paymentservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.innowise.paymentservice.model.PaymentStatus;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -20,6 +21,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CreatePaymentRequest {
     @NotBlank(message = "Order ID is required")
     @Size(min = 1, max = 50, message = "Order ID must be between 1 and 50 characters")

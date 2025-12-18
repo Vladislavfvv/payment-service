@@ -1,6 +1,5 @@
 package com.innowise.paymentservice.client;
 
-import com.innowise.paymentservice.dto.RandomNumberResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,10 +33,11 @@ public class ExternalApiClient {
             log.info("Calling external API for random number: {}", randomNumberApiUrl);
             
             // Используем WebClient для асинхронного вызова, затем блокируем для синхронного результата
-            RandomNumberResponse[] response = webClient.get()
+            // API возвращает массив чисел [34], а не массив объектов
+            Integer[] response = webClient.get()
                     .uri(randomNumberApiUrl)
                     .retrieve()
-                    .bodyToMono(RandomNumberResponse[].class)
+                    .bodyToMono(Integer[].class)
                     .timeout(Duration.ofSeconds(10))
                     // Обработка HTTP ошибок от внешнего API (4xx, 5xx)
                     .onErrorResume(WebClientResponseException.class, ex -> {
@@ -74,8 +74,8 @@ public class ExternalApiClient {
                     })
                     .block(); // Блокируем для синхронного результата (совместимость с текущим кодом)
             
-            if (response != null && response.length > 0 && response[0].getRandom() != null) {
-                Integer randomNumber = response[0].getRandom();
+            if (response != null && response.length > 0 && response[0] != null) {
+                Integer randomNumber = response[0];
                 log.info("Received random number from external API: {}", randomNumber);
                 return randomNumber;
             } else {

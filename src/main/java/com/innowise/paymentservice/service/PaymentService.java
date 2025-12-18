@@ -72,11 +72,15 @@ public class PaymentService {
         Integer randomNumber = externalApiClient.getRandomNumber();
         
         if (randomNumber != null) {
+            log.info("Received random number from external API: {} (for payment id: {})", randomNumber, payment.getId());
+            
             // If number is even -> SUCCESS, otherwise -> FAILED
-            PaymentStatus newStatus = (randomNumber % 2 == 0) ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
+            boolean isEven = (randomNumber % 2 == 0);
+            PaymentStatus newStatus = isEven ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
             payment.setStatus(newStatus);
             repository.save(payment);
-            log.info("Payment status updated to {} based on random number: {}", newStatus, randomNumber);
+            log.info("Payment status updated to {} based on random number: {} (number is {})", 
+                    newStatus, randomNumber, isEven ? "even" : "odd");
         } else {
             // If API call failed, set status to FAILED
             payment.setStatus(PaymentStatus.FAILED);
