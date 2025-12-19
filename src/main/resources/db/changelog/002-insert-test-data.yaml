@@ -4,10 +4,20 @@ databaseChangeLog:
       author: vlad
       changes:
         - insert:
-            collectionName: payments
-            document:
-              order_id: "0"
-              user_id: "0"
-              status: "CREATED"
-              timestamp: "2025-01-01T00:00:00Z"
-              payment_amount: 0.0
+            tableName: payments
+            columns:
+              - column:
+                  name: order_id
+                  value: "0"
+              - column:
+                  name: user_id
+                  value: "0"
+              - column:
+                  name: status
+                  value: "CREATED"
+              - column:
+                  name: timestamp
+                  value: "2025-01-01T00:00:00Z"
+              - column:
+                  name: payment_amount
+                  value: 0.0
