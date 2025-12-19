@@ -35,6 +35,7 @@
         <testcontainers.version>1.20.3</testcontainers.version>
         <testcontainers.redis.version>2.2.4</testcontainers.redis.version>
         <jacoco.version>0.8.10</jacoco.version>
+        <wiremock.version>3.9.1</wiremock.version>
     </properties>
     <dependencies>
         <dependency>
@@ -158,6 +159,30 @@
             <groupId>com.redis</groupId>
             <artifactId>testcontainers-redis</artifactId>
             <version>${testcontainers.redis.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers MongoDB -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers Kafka -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WireMock for external HTTP API stubbing -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>${wiremock.version}</version>
             <scope>test</scope>
         </dependency>
 
