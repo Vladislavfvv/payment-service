@@ -137,7 +137,7 @@ class PaymentServiceIntegrationTest {
         HttpEntity<CreatePaymentRequest> entity = new HttpEntity<>(request, headers);
 
         ResponseEntity<PaymentDto> response = restTemplate.exchange(
-                baseUrl() + "/payments",
+                baseUrl() + "/api/v1/payments",
                 HttpMethod.POST,
                 entity,
                 PaymentDto.class
@@ -200,7 +200,7 @@ class PaymentServiceIntegrationTest {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             restTemplate.exchange(
-                    baseUrl() + "/payments",
+                    baseUrl() + "/api/v1/payments",
                     HttpMethod.POST,
                     new HttpEntity<>(request, headers),
                     PaymentDto.class
@@ -211,7 +211,7 @@ class PaymentServiceIntegrationTest {
         Instant end = Instant.now().plus(Duration.ofHours(1));
 
         ResponseEntity<TotalSumResponse> sumResponse = restTemplate.getForEntity(
-                baseUrl() + "/payments/total?startDate=" + start + "&endDate=" + end,
+                baseUrl() + "/api/v1/payments/total?startDate=" + start + "&endDate=" + end,
                 TotalSumResponse.class
         );
 

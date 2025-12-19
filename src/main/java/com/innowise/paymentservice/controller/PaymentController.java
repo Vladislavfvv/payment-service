@@ -19,20 +19,31 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Validated
 public class PaymentController {
 
     private final PaymentService paymentService;
     
+    /**
+     * Создание нового платежа.
+     * 
+     * @param request данные для создания платежа
+     * @return созданный платеж
+     */
     @PostMapping
-    public ResponseEntity<PaymentDto> create(@Valid @RequestBody CreatePaymentRequest request) {
+    public ResponseEntity<PaymentDto> createPayment(@Valid @RequestBody CreatePaymentRequest request) {
         PaymentDto paymentDto = paymentService.createPayment(request);
         return ResponseEntity.ok(paymentDto);
     }
 
-    
+    /**
+     * Получение платежей по ID заказа.
+     * 
+     * @param orderId ID заказа
+     * @return список платежей для указанного заказа
+     */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<PaymentDto>> getPaymentsByOrderId(
             @PathVariable 
@@ -43,7 +54,12 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
-   
+    /**
+     * Получение платежей по ID пользователя.
+     * 
+     * @param userId ID пользователя
+     * @return список платежей для указанного пользователя
+     */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PaymentDto>> getPaymentsByUserId(
             @PathVariable 
@@ -54,9 +70,14 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
-        
-     //payments/status?statuses=CREATED,PAID,FAILED     
-    @GetMapping("/status")
+    /**
+     * Получение платежей по статусам.
+     * Пример: /api/v1/payments/statuses?statuses=CREATED,SUCCESS,FAILED
+     * 
+     * @param statuses список статусов для фильтрации
+     * @return список платежей с указанными статусами
+     */
+    @GetMapping("/statuses")
     public ResponseEntity<List<PaymentDto>> getPaymentsByStatuses(
             @RequestParam("statuses") 
             @NotNull(message = "Statuses list cannot be null")
@@ -66,8 +87,16 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
    
-    
-    //payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z
+    /**
+     * Получение общей суммы платежей за период.
+     * Пример: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z
+     * Пример с фильтром по статусам: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z&statuses=SUCCESS
+     * 
+     * @param startDate начальная дата периода
+     * @param endDate конечная дата периода
+     * @param statuses опциональный список статусов для фильтрации
+     * @return общая сумма и количество платежей за период
+     */
     @GetMapping("/total")
     public ResponseEntity<TotalSumResponse> getTotalSumByDatePeriod(
             @RequestParam("startDate") 
