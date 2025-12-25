@@ -19,8 +19,8 @@ WORKDIR /app
 # Копирование JAR файла из этапа сборки
 COPY --from=build /app/target/*.jar app.jar
 
-# Порт для Payment Service (8080 согласно application.properties)
-EXPOSE 8080
+# Порт для Payment Service (8085 согласно application.properties)
+EXPOSE 8085
 
 # Переменная окружения для профиля
 ENV SPRING_PROFILES_ACTIVE=docker
