@@ -1,7 +1,9 @@
 databaseChangeLog:
   - include:
       file: db/changelog/001-create-payments.yaml
-  - include:
-      file: db/changelog/002-insert-test-data.yaml
-  - include:
-      file: db/changelog/003-insert-test-data.yaml
+  # Тестовые данные вставляются вручную или через API
+  # Liquibase MongoDB extension не поддерживает стандартный insert statement
+  # - include:
+  #     file: db/changelog/002-insert-test-data.yaml
+  # - include:
+  #     file: db/changelog/003-insert-test-data.yaml
