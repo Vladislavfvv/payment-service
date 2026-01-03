@@ -5,17 +5,14 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 /**
  * Конфигурация для логирования всех зарегистрированных маппингов и входящих запросов.
@@ -53,9 +50,11 @@ class RequestMappingLogger implements ApplicationListener<ContextRefreshedEvent>
     
     private static final Logger log = LoggerFactory.getLogger(RequestMappingLogger.class);
     
-    @Autowired(required = false)
-    @Qualifier("requestMappingHandlerMapping")
-    private RequestMappingHandlerMapping handlerMapping;
+    private final RequestMappingHandlerMapping handlerMapping;
+    
+    public RequestMappingLogger(@Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping) {
+        this.handlerMapping = handlerMapping;
+    }
     
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
