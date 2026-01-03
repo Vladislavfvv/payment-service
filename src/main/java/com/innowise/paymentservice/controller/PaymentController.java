@@ -19,15 +19,42 @@ import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/api/v1/payments")
-@RequiredArgsConstructor
 @Validated
 public class PaymentController {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
+    
+    // Логирование при создании контроллера
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+        // Логируем сразу в конструкторе
+        System.err.println("========================================");
+        System.err.println("PaymentController CONSTRUCTOR CALLED!");
+        System.err.println("Class: " + this.getClass().getName());
+        System.err.println("========================================");
+        log.error("========================================");
+        log.error("PaymentController CONSTRUCTOR CALLED!");
+        log.error("Class: {}", this.getClass().getName());
+        log.error("========================================");
+    }
+    
+    @PostConstruct
+    public void init() {
+        System.err.println("========================================");
+        System.err.println("PaymentController INITIALIZED!");
+        System.err.println("Class: " + this.getClass().getName());
+        System.err.println("Methods: getAllPayments, getAllPaymentsAlternative");
+        System.err.println("========================================");
+        log.error("========================================");
+        log.error("PaymentController INITIALIZED!");
+        log.error("Class: {}", this.getClass().getName());
+        log.error("========================================");
+    }
     
     /**
      * Получение всех платежей.
@@ -45,6 +72,7 @@ public class PaymentController {
     
     /**
      * Получение всех платежей (альтернативный эндпоинт для тестирования).
+     * ВАЖНО: Этот метод должен быть ПЕРЕД методами с переменными пути, чтобы Spring правильно его разрешал.
      * 
      * @return список всех платежей
      */
@@ -54,6 +82,23 @@ public class PaymentController {
         log.error("Method: GET, Path: /api/v1/payments/all");
         List<PaymentDto> payments = paymentService.getAllPayments();
         log.error("Returning {} payments", payments.size());
+        return ResponseEntity.ok(payments);
+    }
+    
+    /**
+     * Получение платежей по статусам.
+     * Пример: /api/v1/payments/statuses?statuses=CREATED,SUCCESS,FAILED
+     * 
+     * @param statuses список статусов для фильтрации
+     * @return список платежей с указанными статусами
+     */
+    @GetMapping("/statuses")
+    public ResponseEntity<List<PaymentDto>> getPaymentsByStatuses(
+            @RequestParam("statuses") 
+            @NotNull(message = "Statuses list cannot be null")
+            List<PaymentStatus> statuses
+    ) {
+        List<PaymentDto> payments = paymentService.getPaymentsByStatuses(statuses);
         return ResponseEntity.ok(payments);
     }
     
@@ -100,24 +145,7 @@ public class PaymentController {
         List<PaymentDto> payments = paymentService.getPaymentsByUserId(userId);
         return ResponseEntity.ok(payments);
     }
-
-    /**
-     * Получение платежей по статусам.
-     * Пример: /api/v1/payments/statuses?statuses=CREATED,SUCCESS,FAILED
-     * 
-     * @param statuses список статусов для фильтрации
-     * @return список платежей с указанными статусами
-     */
-    @GetMapping("/statuses")
-    public ResponseEntity<List<PaymentDto>> getPaymentsByStatuses(
-            @RequestParam("statuses") 
-            @NotNull(message = "Statuses list cannot be null")
-            List<PaymentStatus> statuses
-    ) {
-        List<PaymentDto> payments = paymentService.getPaymentsByStatuses(statuses);
-        return ResponseEntity.ok(payments);
-    }
-   
+    
     /**
      * Получение общей суммы платежей.
      * 
