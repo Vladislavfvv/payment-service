@@ -289,6 +289,98 @@ class PaymentServiceTest {
     }
 
     @Test
+    @DisplayName("getAllPayments_Success_ShouldReturnAllPayments")
+    void getAllPayments_Success_ShouldReturnAllPayments() {
+        // Given
+        Payment payment1 = Payment.builder()
+                .id("payment-1")
+                .orderId("1")
+                .userId("2")
+                .status(PaymentStatus.SUCCESS)
+                .paymentAmount(new BigDecimal("100.50"))
+                .timestamp(Instant.now())
+                .build();
+
+        Payment payment2 = Payment.builder()
+                .id("payment-2")
+                .orderId("3")
+                .userId("4")
+                .status(PaymentStatus.FAILED)
+                .paymentAmount(new BigDecimal("200.00"))
+                .timestamp(Instant.now())
+                .build();
+
+        Payment payment3 = Payment.builder()
+                .id("payment-3")
+                .orderId("5")
+                .userId("6")
+                .status(PaymentStatus.CREATED)
+                .paymentAmount(new BigDecimal("150.75"))
+                .timestamp(Instant.now())
+                .build();
+
+        List<Payment> payments = Arrays.asList(payment1, payment2, payment3);
+
+        PaymentDto dto1 = PaymentDto.builder()
+                .id("payment-1")
+                .orderId("1")
+                .userId("2")
+                .status(PaymentStatus.SUCCESS)
+                .paymentAmount(new BigDecimal("100.50"))
+                .build();
+
+        PaymentDto dto2 = PaymentDto.builder()
+                .id("payment-2")
+                .orderId("3")
+                .userId("4")
+                .status(PaymentStatus.FAILED)
+                .paymentAmount(new BigDecimal("200.00"))
+                .build();
+
+        PaymentDto dto3 = PaymentDto.builder()
+                .id("payment-3")
+                .orderId("5")
+                .userId("6")
+                .status(PaymentStatus.CREATED)
+                .paymentAmount(new BigDecimal("150.75"))
+                .build();
+
+        List<PaymentDto> expectedDtos = Arrays.asList(dto1, dto2, dto3);
+
+        when(repository.findAll()).thenReturn(payments);
+        when(paymentMapper.toDtoList(payments)).thenReturn(expectedDtos);
+
+        // When
+        List<PaymentDto> result = paymentService.getAllPayments();
+
+        // Then
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertEquals("payment-1", result.get(0).getId());
+        assertEquals("payment-2", result.get(1).getId());
+        assertEquals("payment-3", result.get(2).getId());
+        verify(repository).findAll();
+        verify(paymentMapper).toDtoList(payments);
+    }
+
+    @Test
+    @DisplayName("getAllPayments_NoPayments_ShouldReturnEmptyList")
+    void getAllPayments_NoPayments_ShouldReturnEmptyList() {
+        // Given
+        when(repository.findAll()).thenReturn(Collections.emptyList());
+        when(paymentMapper.toDtoList(Collections.emptyList())).thenReturn(Collections.emptyList());
+
+        // When
+        List<PaymentDto> result = paymentService.getAllPayments();
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(repository).findAll();
+        verify(paymentMapper).toDtoList(Collections.emptyList());
+    }
+
+    @Test
     @DisplayName("getPaymentsByOrderId_Success_ShouldReturnList")
     void getPaymentsByOrderId_Success_ShouldReturnList() {
         // Given

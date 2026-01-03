@@ -154,7 +154,6 @@ services:
       context: ../../auth-service/authentication-service
       dockerfile: Dockerfile
     container_name: authentication-service
-    pull_policy: if_not_present
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
@@ -178,7 +177,6 @@ services:
       context: ../../user-service/userService
       dockerfile: Dockerfile
     container_name: user-service
-    pull_policy: if_not_present
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/us_db
@@ -208,7 +206,6 @@ services:
       context: ../../order-service/order-service
       dockerfile: Dockerfile
     container_name: order-service
-    pull_policy: if_not_present
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-order:5432/os_db
@@ -236,7 +233,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: payment-service
-    pull_policy: if_not_present
     restart: always
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo-payment:27017/paymentdb
@@ -261,7 +257,6 @@ services:
       context: ../../gateway-service/gateway-service
       dockerfile: Dockerfile
     container_name: api-gateway
-    pull_policy: if_not_present
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: docker

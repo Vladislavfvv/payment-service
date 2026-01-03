@@ -90,6 +90,20 @@ public class PaymentService {
     }
 
 
+    /**
+     * Получение всех платежей.
+     * 
+     * @return список всех платежей
+     */
+    public List<PaymentDto> getAllPayments() {
+        log.info("Getting all payments");
+        
+        List<Payment> payments = repository.findAll();
+        log.info("Found {} payments in database", payments.size());
+        
+        return paymentMapper.toDtoList(payments);
+    }
+
     public List<PaymentDto> getPaymentsByOrderId(String orderId) {
         log.info("Getting payments for orderId: {}", orderId);
         
@@ -159,6 +173,53 @@ public class PaymentService {
                 .totalSum(totalSum)
                 .startDate(startDate)
                 .endDate(endDate)
+                .paymentCount((long) payments.size())
+                .build();
+    }
+
+    /**
+     * Получение общей суммы всех платежей.
+     * 
+     * @return общая сумма и количество всех платежей
+     */
+    public TotalSumResponse getTotalSum() {
+        log.info("Calculating total sum for all payments");
+        
+        List<Payment> payments = repository.findAll();
+        
+        BigDecimal totalSum = payments.stream()
+                .map(Payment::getPaymentAmount)
+                .filter(amount -> amount != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        log.info("Total sum calculated: {} for {} payments", totalSum, payments.size());
+        
+        return TotalSumResponse.builder()
+                .totalSum(totalSum)
+                .paymentCount((long) payments.size())
+                .build();
+    }
+
+    /**
+     * Получение общей суммы платежей по статусам.
+     * 
+     * @param statuses список статусов для фильтрации
+     * @return общая сумма и количество платежей с указанными статусами
+     */
+    public TotalSumResponse getTotalSumByStatuses(List<PaymentStatus> statuses) {
+        log.info("Calculating total sum for statuses: {}", statuses);
+        
+        List<Payment> payments = repository.findByStatusIn(statuses);
+        
+        BigDecimal totalSum = payments.stream()
+                .map(Payment::getPaymentAmount)
+                .filter(amount -> amount != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        log.info("Total sum calculated: {} for {} payments", totalSum, payments.size());
+        
+        return TotalSumResponse.builder()
+                .totalSum(totalSum)
                 .paymentCount((long) payments.size())
                 .build();
     }

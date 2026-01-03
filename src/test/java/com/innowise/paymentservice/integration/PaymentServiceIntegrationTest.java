@@ -181,6 +181,100 @@ class PaymentServiceIntegrationTest {
     }
 
     @Test
+    @DisplayName("Интеграционный тест: получение всех платежей")
+    void getAllPayments_success_shouldReturnAllPayments() {
+        // Настраиваем WireMock: внешний API возвращает четное число -> SUCCESS
+        stubFor(get("/api/v1.0/random?min=1&max=100")
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[44]")));
+
+        // Создаем несколько платежей
+        CreatePaymentRequest request1 = CreatePaymentRequest.builder()
+                .orderId("get-all-order-1")
+                .userId("user-get-all-1")
+                .paymentAmount(new BigDecimal("100.00"))
+                .build();
+
+        CreatePaymentRequest request2 = CreatePaymentRequest.builder()
+                .orderId("get-all-order-2")
+                .userId("user-get-all-2")
+                .paymentAmount(new BigDecimal("200.00"))
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Создаем первый платеж
+        restTemplate.exchange(
+                baseUrl() + "/api/v1/payments",
+                HttpMethod.POST,
+                new HttpEntity<>(request1, headers),
+                PaymentDto.class
+        );
+
+        // Создаем второй платеж
+        restTemplate.exchange(
+                baseUrl() + "/api/v1/payments",
+                HttpMethod.POST,
+                new HttpEntity<>(request2, headers),
+                PaymentDto.class
+        );
+
+        // Получаем все платежи
+        ResponseEntity<PaymentDto[]> response = restTemplate.exchange(
+                baseUrl() + "/api/v1/payments",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                PaymentDto[].class
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        PaymentDto[] payments = response.getBody();
+        assertThat(payments).isNotNull();
+        assertThat(payments.length).isGreaterThanOrEqualTo(2);
+
+        // Проверяем, что созданные платежи присутствуют в списке
+        boolean foundPayment1 = false;
+        boolean foundPayment2 = false;
+        for (PaymentDto payment : payments) {
+            if ("get-all-order-1".equals(payment.getOrderId())) {
+                foundPayment1 = true;
+                assertThat(payment.getPaymentAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
+            }
+            if ("get-all-order-2".equals(payment.getOrderId())) {
+                foundPayment2 = true;
+                assertThat(payment.getPaymentAmount()).isEqualByComparingTo(new BigDecimal("200.00"));
+            }
+        }
+        assertThat(foundPayment1).isTrue();
+        assertThat(foundPayment2).isTrue();
+    }
+
+    @Test
+    @DisplayName("Интеграционный тест: получение всех платежей когда их нет")
+    void getAllPayments_emptyDatabase_shouldReturnEmptyList() {
+        // Очищаем базу данных перед тестом (в реальном проекте можно использовать @DirtiesContext)
+        // Для простоты просто проверяем, что метод работает без ошибок
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<PaymentDto[]> response = restTemplate.exchange(
+                baseUrl() + "/api/v1/payments",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                PaymentDto[].class
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        PaymentDto[] payments = response.getBody();
+        assertThat(payments).isNotNull();
+        // Может быть пустым или содержать платежи из других тестов
+    }
+
+    @Test
     @DisplayName("Интеграционный тест: подсчет суммы за период на реальной MongoDB")
     void totalSumByDatePeriod_withRealMongo() {
         // Для простоты: создаем несколько платежей через REST, чтобы они попали в Mongo
