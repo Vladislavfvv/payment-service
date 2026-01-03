@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -24,7 +26,36 @@ import java.util.List;
 @Validated
 public class PaymentController {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
+    
+    /**
+     * Получение всех платежей.
+     * 
+     * @return список всех платежей
+     */
+    @GetMapping("")
+    public ResponseEntity<List<PaymentDto>> getAllPayments() {
+        log.error("=== PaymentController.getAllPayments() CALLED ===");
+        log.error("Method: GET, Path: /api/v1/payments");
+        List<PaymentDto> payments = paymentService.getAllPayments();
+        log.error("Returning {} payments", payments.size());
+        return ResponseEntity.ok(payments);
+    }
+    
+    /**
+     * Получение всех платежей (альтернативный эндпоинт для тестирования).
+     * 
+     * @return список всех платежей
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<PaymentDto>> getAllPaymentsAlternative() {
+        log.error("=== PaymentController.getAllPaymentsAlternative() CALLED ===");
+        log.error("Method: GET, Path: /api/v1/payments/all");
+        List<PaymentDto> payments = paymentService.getAllPayments();
+        log.error("Returning {} payments", payments.size());
+        return ResponseEntity.ok(payments);
+    }
     
     /**
      * Создание нового платежа.
@@ -32,7 +63,7 @@ public class PaymentController {
      * @param request данные для создания платежа
      * @return созданный платеж
      */
-    @PostMapping
+    @PostMapping("")
     public ResponseEntity<PaymentDto> createPayment(@Valid @RequestBody CreatePaymentRequest request) {
         PaymentDto paymentDto = paymentService.createPayment(request);
         return ResponseEntity.ok(paymentDto);
@@ -88,23 +119,25 @@ public class PaymentController {
     }
    
     /**
-     * Получение общей суммы платежей за период.
-     * Пример: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z
-     * Пример с фильтром по статусам: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z&statuses=SUCCESS
+     * Получение общей суммы платежей.
      * 
-     * @param startDate начальная дата периода
-     * @param endDate конечная дата периода
+     * Варианты использования:
+     * 1. Без параметров - общая сумма всех платежей: /api/v1/payments/total
+     * 2. За период: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z
+     * 3. С фильтром по статусам: /api/v1/payments/total?startDate=2025-01-01T00:00:00Z&endDate=2025-12-31T23:59:59Z&statuses=SUCCESS
+     * 4. Только по статусам: /api/v1/payments/total?statuses=SUCCESS
+     * 
+     * @param startDate опциональная начальная дата периода
+     * @param endDate опциональная конечная дата периода
      * @param statuses опциональный список статусов для фильтрации
-     * @return общая сумма и количество платежей за период
+     * @return общая сумма и количество платежей
      */
     @GetMapping("/total")
-    public ResponseEntity<TotalSumResponse> getTotalSumByDatePeriod(
-            @RequestParam("startDate") 
-            @NotNull(message = "Start date is required")
+    public ResponseEntity<TotalSumResponse> getTotalSum(
+            @RequestParam(value = "startDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) 
             Instant startDate,
-            @RequestParam("endDate") 
-            @NotNull(message = "End date is required")
+            @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) 
             Instant endDate,
             @RequestParam(value = "statuses", required = false) 
@@ -112,10 +145,23 @@ public class PaymentController {
     ) {
         TotalSumResponse response;
         
-        if (statuses != null && !statuses.isEmpty()) {
-            response = paymentService.getTotalSumByDatePeriodAndStatuses(startDate, endDate, statuses);
+        // Если даты не указаны, возвращаем общую сумму всех платежей
+        if (startDate == null && endDate == null) {
+            if (statuses != null && !statuses.isEmpty()) {
+                response = paymentService.getTotalSumByStatuses(statuses);
+            } else {
+                response = paymentService.getTotalSum();
+            }
+        } else if (startDate != null && endDate != null) {
+            // Если указаны обе даты, используем период
+            if (statuses != null && !statuses.isEmpty()) {
+                response = paymentService.getTotalSumByDatePeriodAndStatuses(startDate, endDate, statuses);
+            } else {
+                response = paymentService.getTotalSumByDatePeriod(startDate, endDate);
+            }
         } else {
-            response = paymentService.getTotalSumByDatePeriod(startDate, endDate);
+            // Если указана только одна дата - ошибка
+            throw new IllegalArgumentException("Both startDate and endDate must be provided, or neither");
         }
         
         return ResponseEntity.ok(response);
