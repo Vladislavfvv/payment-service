@@ -1,6 +1,7 @@
 package com.innowise.paymentservice.service;
 
 import com.innowise.paymentservice.client.ExternalApiClient;
+import com.innowise.paymentservice.client.OrderServiceClient;
 import com.innowise.paymentservice.dto.CreatePaymentRequest;
 import com.innowise.paymentservice.dto.PaymentDto;
 import com.innowise.paymentservice.dto.TotalSumResponse;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +41,9 @@ class PaymentServiceTest {
 
     @Mock
     private ExternalApiClient externalApiClient;
+
+    @Mock
+    private OrderServiceClient orderServiceClient;
 
     @Mock // @Mock - это аннотация, которая используется для создания пустой заглушки
     private PaymentEventProducer paymentEventProducer;
@@ -110,9 +114,10 @@ class PaymentServiceTest {
         when(repository.findById("payment-id-123")).thenReturn(Optional.of(updatedPayment));
         when(paymentMapper.toDto(updatedPayment)).thenReturn(expectedDto);
         doNothing().when(paymentEventProducer).sendCreatePaymentEvent(any(Payment.class));
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When
-        PaymentDto result = paymentService.createPayment(createPaymentRequest);
+        PaymentDto result = paymentService.createPayment(createPaymentRequest, null);
 
         // Then
         assertNotNull(result);
@@ -158,9 +163,10 @@ class PaymentServiceTest {
         when(repository.findById("payment-id-123")).thenReturn(Optional.of(updatedPayment));
         when(paymentMapper.toDto(updatedPayment)).thenReturn(expectedDto);
         doNothing().when(paymentEventProducer).sendCreatePaymentEvent(any(Payment.class));
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When
-        PaymentDto result = paymentService.createPayment(createPaymentRequest);
+        PaymentDto result = paymentService.createPayment(createPaymentRequest, null);
 
         // Then
         assertNotNull(result);
@@ -197,9 +203,10 @@ class PaymentServiceTest {
         when(repository.findById("payment-id-123")).thenReturn(Optional.of(updatedPayment));
         when(paymentMapper.toDto(updatedPayment)).thenReturn(expectedDto);
         doNothing().when(paymentEventProducer).sendCreatePaymentEvent(any(Payment.class));
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When
-        PaymentDto result = paymentService.createPayment(createPaymentRequest);
+        PaymentDto result = paymentService.createPayment(createPaymentRequest, null);
 
         // Then
         assertNotNull(result);
@@ -240,9 +247,10 @@ class PaymentServiceTest {
         when(repository.findById("payment-id-123")).thenReturn(Optional.of(updatedPayment));
         when(paymentMapper.toDto(updatedPayment)).thenReturn(expectedDto);
         doNothing().when(paymentEventProducer).sendCreatePaymentEvent(any(Payment.class));
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When
-        PaymentDto result = paymentService.createPayment(createPaymentRequest);
+        PaymentDto result = paymentService.createPayment(createPaymentRequest, null);
 
         // Then
         assertNotNull(result);
@@ -278,9 +286,10 @@ class PaymentServiceTest {
         when(repository.findById("payment-id-123")).thenReturn(Optional.of(updatedPayment));
         when(paymentMapper.toDto(updatedPayment)).thenReturn(expectedDto);
         doThrow(new RuntimeException("Kafka error")).when(paymentEventProducer).sendCreatePaymentEvent(any(Payment.class));
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When
-        PaymentDto result = paymentService.createPayment(createPaymentRequest);
+        PaymentDto result = paymentService.createPayment(createPaymentRequest, null);
 
         // Then
         assertNotNull(result);
@@ -547,10 +556,11 @@ class PaymentServiceTest {
         when(repository.save(any(Payment.class))).thenReturn(savedPayment);
         when(externalApiClient.getRandomNumber()).thenReturn(48);
         when(repository.findById("payment-id-123")).thenReturn(Optional.empty());
+        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            paymentService.createPayment(createPaymentRequest);
+            paymentService.createPayment(createPaymentRequest, null);
         });
 
         assertEquals("Payment not found after update: payment-id-123", exception.getMessage());

@@ -241,7 +241,7 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     ports:
-      - "8085:8080"
+      - "8085:8085"
     networks:
       - backend-network
     depends_on:
