@@ -48,9 +48,12 @@ public class PaymentEventProducer {
     }
 
     private CreatePaymentEvent buildCreatePaymentEvent(Payment payment) {
+        // Согласно требованиям: когда платеж создан (SUCCESS или FAILED), 
+        // статус заказа становится CANCELED
+        // Отправляем CANCELED независимо от статуса платежа
         return new CreatePaymentEvent(               
                 payment.getOrderId(),              
-                payment.getStatus() != null ? payment.getStatus().name() : null);
+                "CANCELED"); // Всегда CANCELED после создания платежа
     }
 }
 
