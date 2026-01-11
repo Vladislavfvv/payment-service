@@ -73,6 +73,12 @@ class PaymentServiceIntegrationTest {
     static {
         mongoContainer.start();
         kafkaContainer.start();
+        // Ждем, пока Kafka контейнер полностью запустится
+        try {
+            Thread.sleep(5000); // Даем время на инициализацию Kafka
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static WireMockServer wireMockServer;
@@ -180,10 +186,25 @@ class PaymentServiceIntegrationTest {
         assertThat(body.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
 
         // Проверяем, что событие попало в Kafka
+        // Даем время на отправку события в Kafka перед созданием consumer
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
         KafkaConsumer<String, String> consumer = createTestConsumer();
         consumer.subscribe(Collections.singletonList(CREATE_PAYMENT_TOPIC));
+        
+        // Даем время на присоединение к consumer group
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
-        ConsumerRecord<String, String> record = pollSingleRecord(consumer, Duration.ofSeconds(10));
+        // Увеличиваем таймаут до 30 секунд для CI/CD окружения
+        ConsumerRecord<String, String> record = pollSingleRecord(consumer, Duration.ofSeconds(30));
 
         assertThat(record).isNotNull();
         assertThat(record.key()).isEqualTo(body.getId());
@@ -203,9 +224,17 @@ class PaymentServiceIntegrationTest {
                                                             Duration timeout) {
         long end = System.currentTimeMillis() + timeout.toMillis();
         while (System.currentTimeMillis() < end) {
-            var records = consumer.poll(Duration.ofMillis(500));
+            // Увеличиваем интервал poll до 1 секунды для более надежного опроса
+            var records = consumer.poll(Duration.ofMillis(1000));
             if (!records.isEmpty()) {
                 return records.iterator().next();
+            }
+            // Небольшая пауза между попытками для снижения нагрузки
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
         return null;
@@ -265,6 +294,12 @@ class PaymentServiceIntegrationTest {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        // Увеличиваем таймауты для более надежной работы в CI/CD
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
+        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
+        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
+        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 40000);
+        props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000);
         return new KafkaConsumer<>(props);
     }
 }
