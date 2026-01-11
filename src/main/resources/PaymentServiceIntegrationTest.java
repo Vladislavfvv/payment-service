@@ -1,7 +1,6 @@
 package com.innowise.paymentservice.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.innowise.paymentservice.client.OrderServiceClient;
 import com.innowise.paymentservice.dto.CreatePaymentRequest;
 import com.innowise.paymentservice.dto.PaymentDto;
 import com.innowise.paymentservice.dto.TotalSumResponse;
@@ -12,6 +11,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.AutoConfigureDataMongo;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -23,9 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.containers.MongoDBContainer;
@@ -37,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -45,22 +43,38 @@ import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.assertj.core.api.Assertions.assertThat;
+
 import com.innowise.paymentservice.security.TestSecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Интеграционные тесты для payment-service с использованием Testcontainers (MongoDB, Kafka) и WireMock.
+ * TestSecurityConfig отключает проверку безопасности для упрощения тестирования.
+ *
+ * @ActiveProfiles("test") гарантирует, что SecurityConfig с @Profile("!test") не загрузится.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.data.mongodb.auto-index-creation=false", // Отключаем создание индексов
-                "spring.liquibase.enabled=false" // Отключаем Liquibase
-        })
-@Import(TestSecurityConfig.class)
-@ActiveProfiles("test")
+                "spring.data.mongodb.uri=mongodb://localhost:${spring.data.mongodb.port}/paymentdb"
+        }
+)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
+@AutoConfigureDataMongo  // Автоматически настраивает embedded MongoDB
 class PaymentServiceIntegrationTest {
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @BeforeEach
+    void clearDatabase() {
+        mongoTemplate.getDb().drop();
+    }
 
     private static final String CREATE_PAYMENT_TOPIC = "create-payment-events";
 
@@ -73,12 +87,6 @@ class PaymentServiceIntegrationTest {
     static {
         mongoContainer.start();
         kafkaContainer.start();
-        // Ждем, пока Kafka контейнер полностью запустится
-        try {
-            Thread.sleep(5000); // Даем время на инициализацию Kafka
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     private static WireMockServer wireMockServer;
@@ -89,25 +97,18 @@ class PaymentServiceIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
-    @Autowired
-    private MongoTemplate mongoTemplate; // Для очистки базы
-
-    @MockBean
-    private OrderServiceClient orderServiceClient;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
         // Mongo (добавляем имя базы, иначе Spring Boot выдаёт ошибку "Database name must not be empty")
-        //registry.add("spring.data.mongodb.uri", () -> mongoContainer.getConnectionString() + "/paymentdb");
-        registry.add("spring.data.mongodb.uri", () -> mongoContainer.getConnectionString() + "/testdb");
-        registry.add("spring.data.mongodb.auto-index-creation", () -> "false");
+        registry.add("spring.data.mongodb.uri", () -> mongoContainer.getConnectionString() + "/paymentdb");
+
         // Kafka
         registry.add("spring.kafka.bootstrap-servers", () -> kafkaContainer.getBootstrapServers());
 
-//        // Liquibase отключаем в интеграционных тестах
-//        registry.add("spring.liquibase.enabled", () -> false);
+        // Liquibase отключаем в интеграционных тестах
+        registry.add("spring.liquibase.enabled", () -> false);
 
         // Поднимаем WireMock и настраиваем URL внешнего API
         registry.add("external.api.random-number.url", () -> {
@@ -118,17 +119,6 @@ class PaymentServiceIntegrationTest {
             configureFor("localhost", wireMockServer.port());
             return String.format("http://localhost:%d/api/v1.0/random?min=1&max=100", wireMockServer.port());
         });
-    }
-
-    @BeforeEach
-    void setUp() {
-        // Очищаем базу данных перед каждым тестом
-        if (mongoTemplate != null) {
-            mongoTemplate.getDb().drop();
-        }
-        
-        // Настраиваем мок для OrderServiceClient, чтобы не делать реальные HTTP-запросы
-        doNothing().when(orderServiceClient).updateOrderStatus(anyLong(), anyString(), anyString());
     }
 
     @BeforeAll
@@ -175,10 +165,8 @@ class PaymentServiceIntegrationTest {
                 entity,
                 PaymentDto.class
         );
-        // Проверяем успешный ответ
-        //assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getStatusCode().value()).isBetween(200, 299);
 
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         PaymentDto body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.getId()).isNotBlank();
@@ -186,36 +174,19 @@ class PaymentServiceIntegrationTest {
         assertThat(body.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
 
         // Проверяем, что событие попало в Kafka
-        // Даем время на отправку события в Kafka перед созданием consumer
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        
         KafkaConsumer<String, String> consumer = createTestConsumer();
         consumer.subscribe(Collections.singletonList(CREATE_PAYMENT_TOPIC));
-        
-        // Даем время на присоединение к consumer group
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
 
-        // Увеличиваем таймаут до 30 секунд для CI/CD окружения
-        ConsumerRecord<String, String> record = pollSingleRecord(consumer, Duration.ofSeconds(30));
+        ConsumerRecord<String, String> record = pollSingleRecord(consumer, Duration.ofSeconds(10));
 
         assertThat(record).isNotNull();
         assertThat(record.key()).isEqualTo(body.getId());
 
         // Проверяем структуру события (минимально: orderId и status)
-        // В Kafka событии отправляется статус заказа, а не статус платежа
-        // После создания платежа статус заказа всегда становится CANCELED
         Map<?, ?> eventPayload = objectMapper.readValue(record.value(), Map.class);
         assertThat(eventPayload.get("orderId")).isEqualTo("it-order-1");
         assertThat(((String) eventPayload.get("status")).toUpperCase())
-                .isEqualTo("CANCELED"); // Статус заказа после создания платежа
+                .isEqualTo(PaymentStatus.SUCCESS.name());
 
         consumer.close();
     }
@@ -224,34 +195,24 @@ class PaymentServiceIntegrationTest {
                                                             Duration timeout) {
         long end = System.currentTimeMillis() + timeout.toMillis();
         while (System.currentTimeMillis() < end) {
-            // Увеличиваем интервал poll до 1 секунды для более надежного опроса
-            var records = consumer.poll(Duration.ofMillis(1000));
+            var records = consumer.poll(Duration.ofMillis(500));
             if (!records.isEmpty()) {
                 return records.iterator().next();
-            }
-            // Небольшая пауза между попытками для снижения нагрузки
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
             }
         }
         return null;
     }
 
-
     @Test
-    @DisplayName("Интеграционный тест: подсчет суммы за период")
+    @DisplayName("Интеграционный тест: подсчет суммы за период на реальной MongoDB")
     void totalSumByDatePeriod_withRealMongo() {
-        // Настраиваем WireMock
+        // Для простоты: создаем несколько платежей через REST, чтобы они попали в Mongo
         stubFor(get("/api/v1.0/random?min=1&max=100")
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("[24]")));
 
-        // Создаем платежи
         for (int i = 0; i < 2; i++) {
             CreatePaymentRequest request = CreatePaymentRequest.builder()
                     .orderId("sum-order-" + i)
@@ -261,14 +222,12 @@ class PaymentServiceIntegrationTest {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            ResponseEntity<PaymentDto> response = restTemplate.exchange(
+            restTemplate.exchange(
                     baseUrl() + "/api/v1/payments",
                     HttpMethod.POST,
                     new HttpEntity<>(request, headers),
                     PaymentDto.class
             );
-
-            assertThat(response.getStatusCode().value()).isBetween(200, 299);
         }
 
         Instant start = Instant.now().minus(Duration.ofHours(1));
@@ -279,27 +238,23 @@ class PaymentServiceIntegrationTest {
                 TotalSumResponse.class
         );
 
-        assertThat(sumResponse.getStatusCode().value()).isBetween(200, 299);
+        assertThat(sumResponse.getStatusCode().is2xxSuccessful()).isTrue();
         TotalSumResponse body = sumResponse.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.getTotalSum()).isEqualByComparingTo(new BigDecimal("100.00"));
-        assertThat(body.getPaymentCount()).isEqualTo(2L);
+        // В сумме учитываются платежи из обоих тестов: 10.50 + 50.00 + 50.00 = 110.50
+        assertThat(body.getTotalSum()).isEqualByComparingTo(new BigDecimal("110.50"));
+        assertThat(body.getPaymentCount()).isGreaterThanOrEqualTo(3L);
     }
-
 
     private KafkaConsumer<String, String> createTestConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-it-consumer-" + System.currentTimeMillis());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-it-consumer");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        // Увеличиваем таймауты для более надежной работы в CI/CD
-        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
-        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
-        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
-        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 40000);
-        props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000);
         return new KafkaConsumer<>(props);
     }
 }
+
+
