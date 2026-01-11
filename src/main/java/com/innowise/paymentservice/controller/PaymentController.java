@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import jakarta.annotation.PostConstruct;
 
 @Slf4j
@@ -47,7 +45,7 @@ public class PaymentController {
         log.info("========================================");
     }
     
-    @jakarta.annotation.PostConstruct
+    @PostConstruct
     public void init() {
         log.error("========================================");
         log.error("PaymentController INITIALIZED!");
@@ -135,32 +133,6 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
     
-    // Логирование при создании контроллера
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
-        // Логируем сразу в конструкторе
-        System.err.println("========================================");
-        System.err.println("PaymentController CONSTRUCTOR CALLED!");
-        System.err.println("Class: " + this.getClass().getName());
-        System.err.println("========================================");
-        log.error("========================================");
-        log.error("PaymentController CONSTRUCTOR CALLED!");
-        log.error("Class: {}", this.getClass().getName());
-        log.error("========================================");
-    }
-    
-    @PostConstruct
-    public void init() {
-        System.err.println("========================================");
-        System.err.println("PaymentController INITIALIZED!");
-        System.err.println("Class: " + this.getClass().getName());
-        System.err.println("Methods: getAllPayments, getAllPaymentsAlternative");
-        System.err.println("========================================");
-        log.error("========================================");
-        log.error("PaymentController INITIALIZED!");
-        log.error("Class: {}", this.getClass().getName());
-        log.error("========================================");
-    }
     
     /**
      * Получение всех платежей.
@@ -188,23 +160,6 @@ public class PaymentController {
         log.error("Method: GET, Path: /api/v1/payments/all");
         List<PaymentDto> payments = paymentService.getAllPayments();
         log.error("Returning {} payments", payments.size());
-        return ResponseEntity.ok(payments);
-    }
-    
-    /**
-     * Получение платежей по статусам.
-     * Пример: /api/v1/payments/statuses?statuses=CREATED,SUCCESS,FAILED
-     * 
-     * @param statuses список статусов для фильтрации
-     * @return список платежей с указанными статусами
-     */
-    @GetMapping("/statuses")
-    public ResponseEntity<List<PaymentDto>> getPaymentsByStatuses(
-            @RequestParam("statuses") 
-            @NotNull(message = "Statuses list cannot be null")
-            List<PaymentStatus> statuses
-    ) {
-        List<PaymentDto> payments = paymentService.getPaymentsByStatuses(statuses);
         return ResponseEntity.ok(payments);
     }
     
