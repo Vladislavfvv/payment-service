@@ -23,4 +23,16 @@ public interface PaymentRepository extends MongoRepository<Payment, String> {
         Instant startDate, 
         Instant endDate
     );
+    
+    // Методы для поиска платежей по userId
+    List<Payment> findByUserIdAndStatusIn(String userId, List<PaymentStatus> statuses);
+    
+    List<Payment> findByUserIdAndTimestampBetween(String userId, Instant startDate, Instant endDate);
+    
+    List<Payment> findByUserIdAndStatusInAndTimestampBetween(
+        String userId,
+        List<PaymentStatus> statuses, 
+        Instant startDate, 
+        Instant endDate
+    );
 }
